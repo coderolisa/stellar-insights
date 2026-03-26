@@ -1,9 +1,10 @@
 #![no_std]
 use soroban_sdk::{
     contract, contractimpl, contracttype, contracterror, symbol_short, Address, Bytes, BytesN, Env,
-    Map, Symbol,
+    Map, String, Symbol,
 };
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 const HASH_SIZE: u32 = 32;
 const CONTRACT_VERSION: u32 = 1;
 

@@ -1,13 +1,18 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, symbol_short, Address, Env, Symbol, Vec,
+    contract, contractimpl, contracttype, contracterror, symbol_short, Address, Env, String, Symbol, Vec,
 };
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[contracterror]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
     Unauthorized = 1,
+    RoleNotFound = 2,
+    PermissionDenied = 3,
+    InvalidRole = 4,
 }
 
 #[derive(Clone)]
