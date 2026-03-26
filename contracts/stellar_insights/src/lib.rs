@@ -1,3 +1,5 @@
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #![no_std]
 
 mod errors;
@@ -5,7 +7,7 @@ mod events;
 
 use errors::Error;
 use events::emit_snapshot_submitted;
-use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Map};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
 /// Storage keys for persistent contract data
 #[contracttype]
@@ -19,6 +21,7 @@ pub enum DataKey {
     LatestEpoch,
     /// Emergency pause state (true = paused, false = active)
     Paused,
+    Version,
 }
 
 /// Analytics snapshot data structure
@@ -60,6 +63,9 @@ impl StellarInsightsContract {
 
         // Initialize contract as not paused
         env.storage().instance().set(&DataKey::Paused, &false);
+
+        // Store version
+        env.storage().instance().set(&DataKey::Version, &VERSION);
     }
 
     /// Submit a cryptographic hash of an analytics snapshot on-chain
@@ -112,12 +118,12 @@ impl StellarInsightsContract {
 
         // Verify caller is the admin
         if caller != admin {
-            return Err(Error::UnauthorizedCaller);
+            return Err(Error::Unauthorized);
         }
 
         // Validate epoch is not zero
         if epoch == 0 {
-            return Err(Error::InvalidEpoch);
+            return Err(Error::InvalidEpochZero);
         }
 
         // Get existing snapshots map or create new one
@@ -256,6 +262,10 @@ impl StellarInsightsContract {
             .instance()
             .get(&DataKey::LatestEpoch)
             .unwrap_or(0)
+    }
+
+    pub fn getversion(env: Env) -> String {
+        String::from_str(&env, VERSION)
     }
 
     /// Emergency pause the contract

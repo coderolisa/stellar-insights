@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use std::fmt::Write;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
@@ -81,7 +82,7 @@ impl EventIndexer {
 
         let query = r"
             INSERT OR REPLACE INTO contract_events (
-                id, contract_id, event_type, epoch, hash, timestamp, 
+                id, contract_id, event_type, epoch, hash, timestamp,
                 ledger, transaction_hash, created_at, verification_status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
@@ -111,7 +112,7 @@ impl EventIndexer {
 
         let mut sql = String::from(
             r"
-            SELECT id, contract_id, event_type, epoch, hash, timestamp, 
+            SELECT id, contract_id, event_type, epoch, hash, timestamp,
                    ledger, transaction_hash, created_at, verification_status
             FROM contract_events
             WHERE 1=1
@@ -174,9 +175,9 @@ impl EventIndexer {
 
         // Add pagination
         if let Some(limit) = query.limit {
-            sql.push_str(&format!(" LIMIT {limit}"));
+            write!(sql, " LIMIT {limit}").unwrap();
             if let Some(offset) = query.offset {
-                sql.push_str(&format!(" OFFSET {offset}"));
+                write!(sql, " OFFSET {offset}").unwrap();
             }
         }
 
@@ -218,7 +219,7 @@ impl EventIndexer {
         debug!("Getting event by ID: {}", id);
 
         let query = r"
-            SELECT id, contract_id, event_type, epoch, hash, timestamp, 
+            SELECT id, contract_id, event_type, epoch, hash, timestamp,
                    ledger, transaction_hash, created_at, verification_status
             FROM contract_events
             WHERE id = ?
@@ -306,7 +307,7 @@ impl EventIndexer {
         );
 
         let query = r"
-            UPDATE contract_events 
+            UPDATE contract_events
             SET verification_status = ?, verified_at = ?
             WHERE id = ?
         ";
@@ -375,7 +376,7 @@ impl EventIndexer {
     /// Get recent events from the database
     pub async fn get_recent_events(&self, limit: i64) -> Result<Vec<IndexedEvent>> {
         let query = r"
-            SELECT id, contract_id, event_type, epoch, hash, timestamp, ledger, 
+            SELECT id, contract_id, event_type, epoch, hash, timestamp, ledger,
                    transaction_hash, created_at, verification_status
             FROM contract_events
             ORDER BY created_at DESC
@@ -412,7 +413,7 @@ impl EventIndexer {
         debug!("Getting event statistics");
 
         let query = r"
-            SELECT 
+            SELECT
                 COUNT(*) as total_events,
                 COUNT(CASE WHEN verification_status = 'verified' THEN 1 END) as verified_snapshots,
                 COUNT(CASE WHEN verification_status = 'failed' THEN 1 END) as failed_verifications,
@@ -451,7 +452,7 @@ impl EventIndexer {
         );
 
         let query = r"
-            SELECT 
+            SELECT
                 epoch,
                 hash,
                 ledger,
@@ -459,7 +460,7 @@ impl EventIndexer {
                 created_at,
                 transaction_hash
             FROM contract_events
-            WHERE event_type = 'SNAP_SUB' 
+            WHERE event_type = 'SNAP_SUB'
             AND epoch IS NOT NULL
             ORDER BY epoch DESC
             LIMIT ?
@@ -500,7 +501,7 @@ impl EventIndexer {
         debug!("Searching events by hash prefix: {}", prefix);
 
         let query = r"
-            SELECT id, contract_id, event_type, epoch, hash, timestamp, 
+            SELECT id, contract_id, event_type, epoch, hash, timestamp,
                    ledger, transaction_hash, created_at, verification_status
             FROM contract_events
             WHERE hash LIKE ?
