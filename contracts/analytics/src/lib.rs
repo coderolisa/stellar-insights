@@ -31,6 +31,9 @@ pub enum Error {
     
     // Validation errors (40-49)
     InvalidHash = 40,
+    InvalidThreshold = 41,
+    RateLimitExceeded = 42,
+    ActionExpired = 43,
 }
 
 
@@ -166,7 +169,6 @@ pub enum DataKey {
     /// Multi-sig admin configuration
     MultiSigConfig,
     /// Pending multi-sig action keyed by action ID
-    MultiSigConfig,
     PendingAction(u64),
 }
 
@@ -189,7 +191,7 @@ fn check_rate_limit(env: &Env, caller: &Address) -> Result<(), Error> {
     }
 
     if rate_info.call_count >= MAX_CALLS_PER_WINDOW {
-        return Err(Error::InvalidHash);
+        return Err(Error::RateLimitExceeded);
     }
 
     rate_info.call_count += 1;
@@ -803,7 +805,7 @@ impl AnalyticsContract {
             .ok_or(Error::SnapshotNotFound)?;
 
         if env.ledger().timestamp() < action.executable_at {
-            return Err(Error::InvalidEpoch);
+            return Err(Error::ActionExpired);
         }
 
         if action.executed {
@@ -930,7 +932,7 @@ impl AnalyticsContract {
         }
 
         if threshold == 0 || threshold > admins.len() as u32 {
-            return Err(Error::InvalidEpoch);
+            return Err(Error::InvalidThreshold);
         }
 
         let config = MultiSigConfig { admins, threshold };
@@ -1014,7 +1016,7 @@ impl AnalyticsContract {
             .ok_or(Error::SnapshotNotFound)?;
 
         if env.ledger().timestamp() > pending.expires_at {
-            return Err(Error::InvalidEpoch);
+            return Err(Error::ActionExpired);
         }
 
         if !pending.signatures.contains(&signer) {
